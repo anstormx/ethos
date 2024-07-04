@@ -62,6 +62,9 @@ export default function CreateP256() {
       return;
     }
 
+    const platform = await platformAuthenticatorIsAvailable() ? "platform" : "cross-platform";
+
+
     const username = "ethos-wallets";
     const challenge = uuidv4();
     const obj = {
@@ -80,7 +83,7 @@ export default function CreateP256() {
       timeout: 60000,
       authenticatorSelection: {
         userVerification: "required",
-        authenticatorAttachment: "cross-platform"
+        authenticatorAttachment: platform
       },
     };
   
