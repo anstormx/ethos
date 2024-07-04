@@ -11,8 +11,11 @@ export default function Navbar() {
          ethos
         </Link>
       </div>
-      <Link href="/createWallet" className="hover:underline ml-[70%]  font-semibold text-lg">
-        Create wallet
+      <Link href="/createPasskey" className="hover:underline ml-[64%]  font-semibold text-lg">
+        gen passkey
+      </Link>
+      <Link href="/createWallet" className="hover:underline ml-[0.5%]  font-semibold text-lg">
+        gen wallet
       </Link>
       <ConnectButton />
     </div>

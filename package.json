@@ -20,9 +20,22 @@
     "react-dom": "^18",
     "react-toastify": "^10.0.5",
     "userop": "^0.4.0-beta.5",
-    "wagmi": "1.4.13"
+    "wagmi": "1.4.13",
+    "@passwordless-id/webauthn": "^1.2.4",
+    "@peculiar/asn1-ecc": "^2.3.6",
+    "@peculiar/asn1-schema": "^2.3.6",
+    "@simplewebauthn/browser": "^7.2.0",
+    "base64url": "^3.0.1",
+    "buffer": "^6.0.3",
+    "cbor": "^8.1.0",
+    "crypto": "^1.0.1",
+    "crypto-browserify": "^3.12.0",
+    "elliptic": "^6.5.4",
+    "process": "^0.11.10",
+    "uuid": "^9.0.0"
   },
   "devDependencies": {
+    "@simplewebauthn/typescript-types": "^7.0.0",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",

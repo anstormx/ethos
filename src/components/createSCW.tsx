@@ -95,9 +95,9 @@ export default function CreateSCW() {
 
   return (
     <main className="flex flex-col py-6 items-center gap-5">
-          <h1 className="text-5xl font-bold">Create New Wallet</h1>
+          <h1 className="text-5xl font-bold">gen wallet</h1>
           <p className="text-gray-400">
-            Enter the signer addresses for this account
+            enter the signer addresses for this smart wallet
           </p>
           <div className="flex flex-col gap-6 max-w-sm w-full">
             {signers.map((signer, index) => (
@@ -140,13 +140,13 @@ export default function CreateSCW() {
                   className="bg-blue-500 mx-auto hover:bg-blue-700 disabled:bg-blue-500/50 disabled:hover:bg-blue-500/50 hover:transition-colors text-white font-bold py-2 w-fit px-4 rounded-lg"
                   onClick={addNewSigner}
                 >
-                  Add New Signer
+                  new signer
                 </button>
                 <button
                   className="bg-blue-500 mx-auto hover:bg-blue-700 disabled:bg-blue-500/50 disabled:hover:bg-blue-500/50 hover:transition-colors text-white font-bold py-2 w-fit px-4 rounded-lg"
                   onClick={onCreateSCW}
                 >
-                  Create New Wallet
+                  create wallet
                 </button>
               </div>
             )}

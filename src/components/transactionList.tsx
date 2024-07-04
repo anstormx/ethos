@@ -192,7 +192,7 @@ export default function TransactionsList({ address, walletAddress}: TransactionL
       // );
 
       // console.log("txHashReciept", txHashReciept);  
-      toast.success("Feature coming soon, check the console for userOp");
+      toast.success("Feature coming soon, check the console for userop details");
       setLoading(false);
       return;
 
@@ -312,7 +312,7 @@ export default function TransactionsList({ address, walletAddress}: TransactionL
                     {loading ? (
                       <div className="animate-spin rounded-full h-6 w-6 border-4 border-gray-300 border-l-white items-center justify-center mx-auto" />
                     ) : (
-                      `Execute Txn`
+                      `Execute Transaction`
                     )}
                   </button>
                 ) : transaction.pendingSigners.includes(
@@ -325,7 +325,7 @@ export default function TransactionsList({ address, walletAddress}: TransactionL
                     {loading ? (
                       <div className="animate-spin rounded-full h-6 w-6 border-4 border-gray-300 border-l-white items-center justify-center mx-auto" />
                     ) : (
-                      `Sign Txn`
+                      `Sign Transaction`
                     )}
                   </button>
                 ) : (
