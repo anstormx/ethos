@@ -26,29 +26,6 @@ interface TransactionListProps {
   walletAddress: string;
 }
 
-async function getUserOpGasLimits(userOp: UserOperationStruct) {
-  const gasLimits = await axios.post(
-    `https://bundler.biconomy.io/api/v2/11155111/nJPK7B3ru.dd7f7861-190d-41bd-af80-6877f74b8f44`,
-    {
-      method: "eth_estimateUserOperationGas",
-      params: [
-        {
-          sender: userOp.sender,
-          nonce: userOp.nonce,
-          initCode: userOp.initCode,
-          callData: userOp.callData,
-          paymasterAndData: userOp.paymasterAndData,
-          signature: userOp.signature,
-        },
-        process.env.ENTRY_POINT_ADDRESS as string,
-      ],
-      id: 1697033406,
-      jsonrpc: "2.0",
-    }
-  );
-  return gasLimits?.data?.result;
-}
-
 function biginttostring (userOpFinal: UserOperationStruct) {
   return Object.fromEntries(
     Object.entries(userOpFinal).map(([key, value]) => [
@@ -101,7 +78,7 @@ export default function TransactionsList({ address, walletAddress}: TransactionL
       console.log("signature", signature);
   
       // Send a POST request to the create-signature endpoint with the signer's address, signature, and transaction ID
-      const response = await fetch("/toast/createSignature", {
+      const response = await fetch("/routes/createSignature", {
         method: "POST",
         body: JSON.stringify({
         signerAddress: address,
