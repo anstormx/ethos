@@ -17,14 +17,7 @@ import {
 import {
   AbiCoder
 } from "ethers";
-import {
-  Bundler
-} from "@biconomy/bundler";
 import { toast } from "react-toastify";
-
-
-const BICONOMY_API_KEY = process.env.NEXT_PUBLIC_BICONOMY_API_KEY as string;
-
 
 export function getUserOperationBuilder(
   walletContract: Hex,
@@ -34,12 +27,12 @@ export function getUserOperationBuilder(
   callGasLimit: bigint,
   maxFeePerGas: bigint,
   maxPriorityFeePerGas: bigint,
-  signatures ? : Hex,
+  signature ? : Hex,
 ): UserOperationStruct {
   try {
     let encodedSignatures = "0x";
-    if (signatures) {
-      encodedSignatures = AbiCoder.defaultAbiCoder().encode(["bytes"], [signatures]) as Hex;
+    if (signature) {
+      encodedSignatures = AbiCoder.defaultAbiCoder().encode(["bytes"], [signature]) as Hex;
       console.log(encodedSignatures);
     }
 
@@ -61,7 +54,6 @@ export function getUserOperationBuilder(
     throw e;
   }
 }
-
 
 export async function getUserOpForETHTransfer(
   walletAddress: Hex,
@@ -108,18 +100,8 @@ export async function getUserOpForETHTransfer(
 
     console.log("Call Data Gas Limit: ", callDataGasLimit);
 
-    const bundler = await Bundler.create({
-      chainId: 11155111,
-      bundlerUrl: BICONOMY_API_KEY,
-      entryPointAddress: process.env.ENTRY_POINT_ADDRESS,
-    });
-
-    console.log("Bundler: ", bundler);
-
     // Get the current gas prices
-    const { maxFeePerGas, maxPriorityFeePerGas } = await bundler.getGasFeeValues();
-
-    console.log(maxFeePerGas, maxPriorityFeePerGas);
+    const { gasPrice, maxFeePerGas, maxPriorityFeePerGas } = await provider.getFeeData();
 
     // Get the user operation builder with the necessary parameters
     const userOp = getUserOperationBuilder(
@@ -128,14 +110,12 @@ export async function getUserOpForETHTransfer(
       initCode as Hex,
       encodedCallData,
       callDataGasLimit,
-      BigInt(maxFeePerGas),
-      BigInt(maxPriorityFeePerGas),
+      BigInt(maxFeePerGas as bigint),
+      BigInt(maxPriorityFeePerGas as bigint),
     );
 
     console.log("User Operation: ", userOp);
-
-    console.log("getUserOpForETHTransfer works");
-
+    
     return userOp;
 
   } catch (e) {

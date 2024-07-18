@@ -33,7 +33,7 @@ export default function WalletPage({params: { walletAddress }}: {params: { walle
             // Get the user operation for the ETH transfer
             const userOp = await getUserOpForETHTransfer(
                 walletAddress as Hex,
-                data.signers,
+                data.signer,
                 data.salt,
                 toAddress,
                 amountBigInt,
@@ -90,6 +90,7 @@ export default function WalletPage({params: { walletAddress }}: {params: { walle
             if (data.error) throw new Error(data.error);
         
             toast.success("Transaction created successfully");
+            setLoading(false);
 
             window.location.reload();
         } catch (err) {

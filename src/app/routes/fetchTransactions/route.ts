@@ -1,16 +1,12 @@
 import { prisma } from "@/utils/db";
 import { isAddress } from "ethers/address";
 import { NextRequest, NextResponse } from "next/server";
-import { Transaction, TransactionSignature, Wallet } from "@prisma/client";
+import { Transaction, Wallet } from "@prisma/client";
 import { toast } from "react-toastify";
 
 export const dynamic = "force-dynamic";
 
-export type TransactionWithSignatures = Transaction & {
-    signatures: TransactionSignature[];
-    wallet: Wallet;
-    pendingSigners: string[];
-};
+export type TransactionWithPendingSigner = Transaction ;
 
 export async function GET(req: NextRequest, res: NextResponse) {
     try {
@@ -33,7 +29,6 @@ export async function GET(req: NextRequest, res: NextResponse) {
 				},
 			},
 			include: {
-				signatures: true,
 				wallet: true,
 			},
 			orderBy: {
@@ -44,20 +39,12 @@ export async function GET(req: NextRequest, res: NextResponse) {
 			},
         });
 
-        // Augment transactions with pendingSigners
-        const augmentedTransactions: TransactionWithSignatures[] = transactions.map(
-			(transaction) => {
-				// Filter out signers who haven't completed a signature
-				const pendingSigners = transaction.wallet.signers.filter(
-				(signer) =>
-					!transaction.signatures.find(
-					(signature) => signature.signerAddress === signer
-					)
-				);
-
-				// Return the transaction with pendingSigners
-				return {...transaction, pendingSigners};
-			}
+        // Augment transactions with pendingSigner
+        const augmentedTransactions: TransactionWithPendingSigner[] = transactions.map(
+            (transaction) => ({
+                ...transaction,
+                pendingSigner: transaction.signerAddress !== transaction.wallet.signer,
+            })
         );
 
         // Return the transactions in JSON format

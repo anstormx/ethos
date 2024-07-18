@@ -59,10 +59,12 @@ export default function WalletList({ address }: { address: string }) {
                 {isAddress(wallet.address) && (
                   <div
                     key={`${wallet.address}-${wallet.signer}`}
-                    className="px-4 flex items-center justify-center gap-2 py-2"
+                    className="flex items-center justify-center gap-2 py-2"
                   >
                     <Icon type="user" />
-                    <p className="text-gray-300 font-mono">{wallet.address}</p>
+                    <Link href={`/${wallet.address}`} className="text-gray-300 hover:text-gray-100 transition duration-200 mr-[2%]">
+                      <p className="font-mono">{wallet.address}</p>
+                    </Link>
                     <Link
                       href={`https://sepolia.etherscan.io/address/${wallet.address}`}
                       target="_blank"

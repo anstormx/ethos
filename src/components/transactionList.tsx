@@ -1,4 +1,4 @@
-import { TransactionWithSignatures } from "@/app/routes/fetchTransactions/route";
+import { TransactionWithPendingSigner } from "@/app/routes/fetchTransactions/route";
 import { BUNDLER_RPC_URL, WALLET_FACTORY_ADDRESS } from "@/utils/constants";
 import { getUserOperationBuilder } from "@/utils/getUserOpForETHTransfer";
 import getUserOpHash from "@/utils/getUserOpHash";
@@ -16,6 +16,11 @@ import { createGasEstimator } from "entry-point-gas-estimations";
 import { UserOperation } from "entry-point-gas-estimations";
 import { EstimateUserOperationGas } from "entry-point-gas-estimations";
 import { toast } from "react-toastify";
+import { Prisma } from "@prisma/client";
+
+type TransactionWithWallet = Prisma.TransactionGetPayload<{
+  include: { wallet: true }
+}>;
 
 require("dotenv").config();
 
@@ -38,7 +43,7 @@ function biginttostring (userOpFinal: UserOperationStruct) {
 export default function TransactionsList({ address, walletAddress}: TransactionListProps) {
   const isMounted = useIsMounted();
 
-  const [walletTxns, setWalletTxns] = useState<TransactionWithSignatures[]>([]);
+  const [walletTxns, setWalletTxns] = useState<TransactionWithPendingSigner[]>([]);
   const [loading, setLoading] = useState(false);
   const { data: walletClient } = useWalletClient();
 
@@ -59,7 +64,7 @@ export default function TransactionsList({ address, walletAddress}: TransactionL
     }
   }, [walletAddress]);
 
-  const signTransaction = async (transaction: TransactionWithSignatures) => {
+  const signTransaction = async (transaction: TransactionWithPendingSigner) => {
     // If there's no wallet client, return immediately
     if (!walletClient) return;
 
@@ -103,7 +108,7 @@ export default function TransactionsList({ address, walletAddress}: TransactionL
     }
   };
 
-  const sendTransaction = async (transaction: TransactionWithSignatures) => {
+  const sendTransaction = async (transaction: TransactionWithWallet) => {
     try {
       setLoading(true);
   
@@ -116,21 +121,6 @@ export default function TransactionsList({ address, walletAddress}: TransactionL
           bundlerUrl: BICONOMY_API_KEY,
           entryPointAddress: ENTRY_POINT_ADDRESS,
       });
-
-      // Create an array to store the ordered signatures in the transaction based on the ordering of the signers
-      const orderedSignatures: string[] = [];
-  
-      // Order the signatures based on the order of the signers
-      transaction.wallet.signers.forEach((signer) => {
-        transaction.signatures.forEach((signature) => {
-        if (signature.signerAddress === signer) {
-          orderedSignatures.push(signature.signature);
-        }
-        });
-      });
-  
-      // If the number of ordered signatures is not equal to the number of signers, throw an error
-      if (orderedSignatures.length != transaction.wallet.signers.length) throw new Error("Fewer signatures received than expected");
   
       let initCode = userOp.initCode as Hex;
   
@@ -138,6 +128,8 @@ export default function TransactionsList({ address, walletAddress}: TransactionL
       if (transaction.wallet.isDeployed) {
         initCode = `0x`;
       }
+
+      const {maxFeePerGas, maxPriorityFeePerGas} = await provider.getFeeData();
   
       // Get the user operation builder
       const userOpFinal = getUserOperationBuilder(
@@ -146,9 +138,9 @@ export default function TransactionsList({ address, walletAddress}: TransactionL
         initCode,
         userOp.callData,
         userOp.callGasLimit,
-        userOp.maxFeePerGas,
-        userOp.maxPriorityFeePerGas,
-        orderedSignatures[0] as Hex,
+        maxFeePerGas as bigint,
+        maxPriorityFeePerGas as bigint,
+        transaction.signature as Hex,
       );
 
       const userOpConverted = biginttostring(userOpFinal);
@@ -169,9 +161,13 @@ export default function TransactionsList({ address, walletAddress}: TransactionL
       // );
 
       // console.log("txHashReciept", txHashReciept);  
-      toast.success("Feature coming soon, check the console for userop details");
-      setLoading(false);
-      return;
+
+      // const gas = await bundler.estimateUserOpGas(userOpConverted as UserOperationStruct);
+      // console.log("gas", gas);
+
+      // toast.success("Feature coming soon, check the console for userop details");
+      // setLoading(false);
+      // return;
 
 
 
@@ -183,10 +179,12 @@ export default function TransactionsList({ address, walletAddress}: TransactionL
       });
 
       const estimateUserOperationGasResponse: EstimateUserOperationGas = await gasEstimator.estimateUserOperationGas({
-        userOperation: userOpConverted as UserOperation,
+        userOperation: userOpFinal as UserOperation,
       });
 
       console.log(estimateUserOperationGasResponse);
+
+
   
       // const txn = await bundler.sendUserOp(userOpConverted, "validation");
 
@@ -232,13 +230,11 @@ export default function TransactionsList({ address, walletAddress}: TransactionL
     <main className="flex flex-col justify-center p-10 items-center  gap-5">
       <h1 className="text-5xl font-bold">Transactions</h1>
 
-      {walletTxns.length === 0 && (
+      {walletTxns.length === 0 ? 
         <div className="flex justify-center items-center border-2 border-dashed p-6 rounded-lg">
           <p className="text-lg">You currently have no transactions.</p>
         </div>
-      )}
-
-      {walletTxns.length > 0 && (
+      : 
         <div className="grid grid-cols-3 gap-4">
           {walletTxns.map((transaction) => (
             <div
@@ -249,21 +245,13 @@ export default function TransactionsList({ address, walletAddress}: TransactionL
                 Transaction #{transaction.id}
               </span>
               <div className="flex flex-col gap-2">
-                {transaction.signatures.map((signature) => (
                   <div
-                    key={signature.signature}
+                    key={transaction.signature}
                     className="flex font-mono gap-4"
                   >
-                    <span>{signature.signerAddress}</span>
+                    <span>{transaction.signerAddress}</span>
                     <Icon type="check" />
                   </div>
-                ))}
-                {transaction.pendingSigners.map((signer) => (
-                  <div key={signer} className="flex font-mono gap-4">
-                    <span>{signer}</span>
-                    <Icon type="xmark" />
-                  </div>
-                ))}
 
                 {transaction.txHash ? (
                   <button
@@ -281,10 +269,10 @@ export default function TransactionsList({ address, walletAddress}: TransactionL
                       `View on Etherscan`
                     )}
                   </button>
-                ) : transaction.pendingSigners.length === 0 ? (
+                ) : transaction.signature ? (
                   <button
                     className="bg-blue-500 mx-auto hover:bg-blue-700 disabled:bg-blue-500/50 disabled:hover:bg-blue-500/50 hover:transition-colors text-white font-bold py-2 w-fit px-4 rounded-lg"
-                    onClick={() => sendTransaction(transaction)}
+                    onClick={() => sendTransaction(transaction as TransactionWithWallet)}
                   >
                     {loading ? (
                       <div className="animate-spin rounded-full h-6 w-6 border-4 border-gray-300 border-l-white items-center justify-center mx-auto" />
@@ -292,9 +280,7 @@ export default function TransactionsList({ address, walletAddress}: TransactionL
                       `Execute Transaction`
                     )}
                   </button>
-                ) : transaction.pendingSigners.includes(
-                    address.toLowerCase()
-                  ) ? (
+                ) : 
                   <button
                     className="bg-blue-500 mx-auto hover:bg-blue-700 disabled:bg-blue-500/50 disabled:hover:bg-blue-500/50 hover:transition-colors text-white font-bold py-2 w-fit px-4 rounded-lg"
                     onClick={() => signTransaction(transaction)}
@@ -305,19 +291,12 @@ export default function TransactionsList({ address, walletAddress}: TransactionL
                       `Sign Transaction`
                     )}
                   </button>
-                ) : (
-                  <button
-                    className="bg-blue-500 mx-auto hover:bg-blue-700 disabled:bg-blue-500/50 disabled:hover:bg-blue-500/50 hover:transition-colors text-white font-bold py-2 w-fit px-4 rounded-lg"
-                    disabled
-                  >
-                    No Action Reqd
-                  </button>
-                )}
+                }
               </div>
             </div>
           ))}
         </div>
-      )}
+      }
     </main>
   );
 }

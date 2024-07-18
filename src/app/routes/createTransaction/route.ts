@@ -18,12 +18,8 @@ export async function POST(req: NextRequest) {
           },
         },
         userOp,
-        signatures: {
-          create: {
-            signature,
-            signerAddress: signerAddress.toLowerCase(),
-          },
-        },
+        signature,
+        signerAddress: signerAddress.toLowerCase(), //remove
       },
     });
 

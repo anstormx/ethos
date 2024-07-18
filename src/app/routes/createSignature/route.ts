@@ -12,12 +12,8 @@ export async function POST(req: NextRequest) {
             id: transactionId,
         },
         data: {
-            signatures: {
-            create: {
-                signature,
-                signerAddress: signerAddress.toLowerCase(),
-            },
-            },
+            signature,
+            signerAddress: signerAddress.toLowerCase(),
         },
         });
 
