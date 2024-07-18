@@ -30,7 +30,7 @@ export async function POST(req: NextRequest, res: NextResponse) {
     return NextResponse.json(response);
   } catch (error) {
     toast.error("An error occurred while creating wallet, check the console for more information");
-    console.error(error);
+    console.log(error);
     return NextResponse.json({ error });
   }
 }

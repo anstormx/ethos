@@ -20,9 +20,7 @@ export async function GET(req: NextRequest) {
 
     const wallets = await prisma.wallet.findMany({
       where: {
-        signers: {
-          has: address.toLowerCase(),
-        },
+        signer: address.toLowerCase(),
       },
       include: {
         _count: {
