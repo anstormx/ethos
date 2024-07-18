@@ -65,7 +65,7 @@ export function getUserOperationBuilder(
 
 export async function getUserOpForETHTransfer(
   walletAddress: Hex,
-  owners: string[],
+  owner: string,
   salt: string,
   toAddress: string,
   value: bigint,
@@ -77,7 +77,7 @@ export async function getUserOpForETHTransfer(
       // Encode the function data for creating a new account
       const data = walletFactoryContract.interface.encodeFunctionData(
         "createAccount",
-        [owners, salt]
+        [owner, salt]
       );
 
       // Initialize the initCode which will be used to deploy a new wallet

@@ -3,13 +3,13 @@ import { isAddress } from "ethers/address";
 import { NextRequest, NextResponse } from "next/server";
 import { toast } from "react-toastify";
 
-
 export const dynamic = "force-dynamic";
 
-
-export async function GET(req: NextRequest) {
+export async function GET(req: NextRequest, res: NextResponse) {
   try {
     const { searchParams } = new URL(req.url);
+
+    // Get the wallet address from the query params
     const walletAddress = searchParams.get("walletAddress");
 
     if (!walletAddress) {
@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(wallet);
   } catch (error) {
     console.error(error);
-    toast.error("An error occurred while fetching wallet, check the console for more information");
+    toast.error(`${error}`);
     return NextResponse.json({ error });
   }
 }

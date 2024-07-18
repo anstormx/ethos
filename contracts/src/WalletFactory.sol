@@ -1,6 +1,6 @@
-// SPDX-License-Identifier: GPL-3.0
+//SPDX-License-Identifier: Unlicense
 
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.24;
 
 // Interface for the entry point contract
 import {IEntryPoint} from "account-abstraction/interfaces/IEntryPoint.sol";
@@ -19,9 +19,9 @@ contract WalletFactory {
     }
 
     // Function to generate the counterfactual address of the proxy contract
-    function getProxyAddress(address[] memory owners, uint256 salt) public view returns (address) {
-        // Encode the initialize function in our wallet with the owners array as an argument into a bytes array
-        bytes memory walletInit = abi.encodeCall(Wallet.initialize, owners);
+    function getProxyAddress(address owner, uint256 salt) public view returns (address) {
+        // Encode the initialize function in our wallet with the owner as the argument
+        bytes memory walletInit = abi.encodeCall(Wallet.initialize, owner);
         // Encode the proxyContract's constructor arguments which include the address walletImplementation and the walletInit
         bytes memory proxyConstructor = abi.encode(
             address(walletImplementation),
@@ -39,9 +39,9 @@ contract WalletFactory {
     }
 
     // Function to deploy a new Wallet contract
-    function createAccount(address[] memory owners, uint256 salt) external returns (Wallet) {
+    function createAccount(address owner, uint256 salt) external returns (Wallet) {
         // Get the counterfactual address
-        address addr = getProxyAddress(owners, salt);
+        address addr = getProxyAddress(owner, salt);
         // Check if the code at the counterfactual address is non-empty
         uint256 codeSize = addr.code.length;
         if (codeSize > 0) {
@@ -50,7 +50,7 @@ contract WalletFactory {
         }
 
         // If the code is empty, deploy a new Wallet
-        bytes memory walletInit = abi.encodeCall(Wallet.initialize, owners);
+        bytes memory walletInit = abi.encodeCall(Wallet.initialize, owner);
         ERC1967Proxy proxy = new ERC1967Proxy{salt: bytes32(salt)}(
             address(walletImplementation),
             walletInit

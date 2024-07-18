@@ -8,6 +8,7 @@ import getUserOpHash from "@/utils/getUserOpHash";
 import TransactionsList from "@/components/transactionList";
 import { Hex } from "@/interface/types";
 import { toast } from "react-toastify";
+import { isAddress } from "ethers";
 
 
 export default function WalletPage({params: { walletAddress }}: {params: { walletAddress: string };}) {
@@ -55,8 +56,8 @@ export default function WalletPage({params: { walletAddress }}: {params: { walle
         try {
             setLoading(true);
         
-            if (!userAddress) throw new Error("Could not get user address");
-            if (!walletClient) throw new Error("Could not get wallet client");
+            if (!amount || (amount<0)) throw new Error("Please enter a valid amount");
+            if (!toAddress || !isAddress(toAddress)) throw new Error("Please enter a valid address");
         
             const userOp = await fetchUserOp();
             if (!userOp) throw new Error("Could not fetch userOp");
@@ -64,7 +65,7 @@ export default function WalletPage({params: { walletAddress }}: {params: { walle
             const userOpHash = await getUserOpHash(userOp);
             
             // Sign the user operation hash using the wallet client
-            const signature = await walletClient.signMessage({                  //webauthn
+            const signature = await walletClient?.signMessage({                  //webauthn
                 message: { raw: userOpHash as `0x${string}` },
             });
             
@@ -93,7 +94,7 @@ export default function WalletPage({params: { walletAddress }}: {params: { walle
             window.location.reload();
         } catch (err) {
             console.log(err);
-            toast.error("Could not create transaction, check the console for more details");
+            toast.error(`${err}`);
             setLoading(false);
         }
     };
@@ -125,7 +126,7 @@ export default function WalletPage({params: { walletAddress }}: {params: { walle
                 }}
             />
             <button
-                className="bg-blue-500 mx-auto hover:bg-blue-700 disabled:bg-blue-500/50 disabled:hover:bg-blue-500/50 hover:transition-colors text-white font-bold py-2 w-fit px-4 rounded-lg"
+                className="bg-blue-500 mx-auto hover:bg-blue-700 disabled:bg-blue-500/50 disabled:hover:bg-blue-500/50 hover:transition-colors text-white font-bold py-2 w-[8%] px-4 rounded-lg transition duration-200"
                 onClick={createTransaction}
             >
                 {loading ? (

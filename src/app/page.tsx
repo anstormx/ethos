@@ -18,7 +18,7 @@ export default function Home() {
           {isConnected? 
             (address && <WalletList address={address} />)
           : 
-          <label className="text-xl mt-[2%]">
+          <label className="text-xl mt-[2%] font-semibold">
             please connect your wallet
           </label>
           }

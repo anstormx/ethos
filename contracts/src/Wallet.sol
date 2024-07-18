@@ -1,6 +1,6 @@
-// SPDX-License-Identifier: GPL-3.0
+//SPDX-License-Identifier: Unlicense
 
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.24;
 
 // Entry point interface
 import {IEntryPoint} from "account-abstraction/interfaces/IEntryPoint.sol";
@@ -32,7 +32,7 @@ contract Wallet is BaseAccount, Initializable, UUPSUpgradeable, TokenCallbackHan
     // Entry point contract address
     IEntryPoint private immutable _entryPoint;
     // Owners of the wallet
-    address[] public owners;
+    address public owner;
 
 
     // Modifier to restrict access to the entry point or wallet factory
@@ -51,13 +51,14 @@ contract Wallet is BaseAccount, Initializable, UUPSUpgradeable, TokenCallbackHan
     }
 
 
-    event WalletInitialized(IEntryPoint indexed entryPoint, address[] owners);
+    event WalletInitialized(IEntryPoint indexed entryPoint, address owner);
 
 
     // Fallback function to accept ether
     receive() external payable {}
 
 
+    // Function to get the entry point contract
     function entryPoint() public view override returns (IEntryPoint) {
         return _entryPoint;
     }
@@ -65,9 +66,9 @@ contract Wallet is BaseAccount, Initializable, UUPSUpgradeable, TokenCallbackHan
     // Function to upgrade the contract
     function _authorizeUpgrade(address) internal view override _requireFromEntryPointOrFactory {}
 
-    // Function to encode the signatures in a bytes array
-    function encodeSignatures(bytes[] memory signatures) public pure returns (bytes memory) {
-        return abi.encode(signatures);
+    // Function to encode the signature
+    function encodeSignatures(bytes memory signature) public pure returns (bytes memory) {
+        return abi.encode(signature);
     }
 
     // Check the balance of the wallet
@@ -80,16 +81,16 @@ contract Wallet is BaseAccount, Initializable, UUPSUpgradeable, TokenCallbackHan
         entryPoint().depositTo{value: msg.value}(address(this));
     }
         
-    // Initialize the wallet with the owners once
-    function _initialize(address[] memory initialOwners) internal {
-        require(initialOwners.length > 0, "Owners cannot be empty");
-        owners = initialOwners;
-        emit WalletInitialized(_entryPoint, initialOwners);
+    // Initialize the wallet with the owner once
+    function _initialize(address initialOwner) internal {
+        require(initialOwner != address(0), "Owner cannot be zero address");
+        owner = initialOwner;
+        emit WalletInitialized(_entryPoint, initialOwner);
     }
 
-    // Initialize the wallet with the owners once
-    function initialize(address[] memory initialOwners) public initializer {
-        _initialize(initialOwners);
+    // Initialize the wallet with the owner once
+    function initialize(address initialOwner) public initializer {
+        _initialize(initialOwner);
     }
 
     function _validateSignature(
@@ -100,16 +101,14 @@ contract Wallet is BaseAccount, Initializable, UUPSUpgradeable, TokenCallbackHan
         bytes32 hash = userOpHash.toEthSignedMessageHash();
 
         // Decode the signatures from the userOp and store them in a bytes array in memory
-        bytes[] memory signatures = abi.decode(userOp.signature, (bytes[]));
+        bytes memory signature = abi.decode(userOp.signature, (bytes));
 
-        // Loop through all the owners of the wallet
-        for (uint256 i = 0; i < owners.length; i++) {
-            // Recover the signer's address from each signature
-            // If the recovered address doesn't match the owner's address, return SIG_VALIDATION_FAILED
-            if (owners[i] != hash.recover(signatures[i])) {
-                return 1;
-            }
+        // Recover the signer's address from signature
+        // If the recovered address doesn't match the owner's address, return SIG_VALIDATION_FAILED
+        if (owner != hash.recover(signature)) {
+            return 1;
         }
+        
         // If all signatures are valid return 0
         return 0;
     }

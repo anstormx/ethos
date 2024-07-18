@@ -24,7 +24,7 @@ import {
   shouldRemoveLeadingZero,
 } from "../utils/helpers";
 import entryPointAbi from "../utils/abi.json";
-import { ethers } from "ethers";  
+import { ethers, keccak256 } from "ethers";  
 const EC = elliptic.ec;
 const ec = new EC("p256");
 
@@ -62,8 +62,8 @@ export default function CreateP256() {
       return;
     }
 
-    const platform = await platformAuthenticatorIsAvailable() ? "platform" : "cross-platform";
-
+    // const platform = await platformAuthenticatorIsAvailable() ? "platform" : "cross-platform";
+    const platform = "cross-platform";
 
     const username = "ethos-wallets";
     const challenge = uuidv4();
@@ -83,12 +83,11 @@ export default function CreateP256() {
       timeout: 60000,
       authenticatorSelection: {
         userVerification: "required",
-        authenticatorAttachment: platform
+        authenticatorAttachment: platform,
       },
     };
   
     let publicKeyCredential;
-    console.log("registration options", obj);
     try {
       publicKeyCredential = await startRegistration(obj as any);
     } catch (error) {
@@ -97,7 +96,6 @@ export default function CreateP256() {
       setLoading(false);
       return;
     }
-
 
     const attestationObject = base64url.toBuffer(
       publicKeyCredential.response.attestationObject
@@ -123,45 +121,53 @@ export default function CreateP256() {
       "0x" + pk.getPublic("hex").slice(-64),
     ];
 
+    // Convert x and y to hex strings, ensuring they are 32 bytes each
+    const xHex = Buffer.from(x).toString('hex').padStart(64, '0');
+    const yHex = Buffer.from(y).toString('hex').padStart(64, '0');
+
+    // Concatenate with '04' prefix for uncompressed public key
+    const uncompressedPubKey = '04' + xHex + yHex;
+
+    // Hash using Keccak-256
+    const hash = keccak256(Buffer.from(uncompressedPubKey, 'hex'));
+
+    // Take the last 20 bytes
+    const ethereumAddress = '0x' + hash.slice(-40);
+    console.log("ethereumAddress", ethereumAddress);
+
+    setPublicKey(ethereumAddress);
     setCredentials(publicKeyCredential);
     setPublicKeys(publicKey);
     toast.success("Passkey created successfully");
     setLoading(false);
-  };
-  
+    };
 
+  
   return (
     <main className="flex flex-col py-6 items-center gap-5">
       <h1 className="text-5xl font-bold">gen passkey</h1>
       <p className="text-gray-400">
-        create a new passkey using webauthn
+        create a new wallet using webauthn
       </p>
       <div className="flex flex-col gap-6 max-w-sm w-full"> 
         {loading ? (
           <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-l-white items-center justify-center mx-auto" />
           ):(
-          <button
-          className="bg-blue-500 mx-auto hover:bg-blue-700 disabled:bg-blue-500/50 disabled:hover:bg-blue-500/50 hover:transition-colors text-white font-bold py-2 w-fit px-4 rounded-lg"
+            <button
+            className="bg-blue-500 mx-auto hover:bg-blue-700 disabled:bg-blue-500/50 disabled:hover:bg-blue-500/50 hover:transition-colors text-white font-bold py-2 w-fit px-4 rounded-lg"
           onClick={createPassKey}
-          >
+            >
           create passkey
-          </button>
+            </button>
         )}
       </div>
       {publicKeys.length > 0 && (
       <>
-        <h4>Public key generated</h4>
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 15,
-            margin: "0 auto",
-          }}
-        >
-          <li>key: coming soon buddy, fyi: this can be used in signing userops {publicKey}</li>
+        <div className="mt-5 text-base">public key generated, use this key to create a wallet</div>
+        <div className="flex flex-col gap-5">
           <li>x: {publicKeys[0]}</li>
           <li>y: {publicKeys[1]}</li>
+          <li>key: {publicKey}</li>
         </div>
       </>
     )}

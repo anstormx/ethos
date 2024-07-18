@@ -19,7 +19,7 @@ model Wallet {
   id Int @id @default(autoincrement())
 
   address    String   @unique
-  signers    String[] @default([])
+  signer    String
   isDeployed Boolean  @default(false)
 
   salt         String
