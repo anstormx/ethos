@@ -6,7 +6,6 @@ import {BaseAccount} from "account-abstraction/core/BaseAccount.sol";
 import {PackedUserOperation} from "account-abstraction/interfaces/PackedUserOperation.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Initializable} from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
 import {TokenCallbackHandler} from "account-abstraction/samples/callback/TokenCallbackHandler.sol";
@@ -18,19 +17,22 @@ import {SIG_VALIDATION_FAILED, SIG_VALIDATION_SUCCESS} from "account-abstraction
  */
 contract Wallet is
     BaseAccount,
-    Ownable,
     UUPSUpgradeable,
     TokenCallbackHandler,
     Initializable
 {
     IEntryPoint private immutable _entryPoint;
     address public immutable walletFactory;
+    address public owner;
 
     event DepositAdded(address indexed sender, uint256 amount);
     event DepositWithdrawn(uint256 amount);
     event UpgradeAuthorized(address indexed newImplementation);
     event OwnerChanged(address indexed newOwner);
-    event UserOperationValidated(bytes32 indexed userOpHash, uint256 validationData);
+    event UserOperationValidated(
+        bytes32 indexed userOpHash,
+        uint256 validationData
+    );
     event PrefundPaid(uint256 missingAccountFunds);
     event WalletInitialized(IEntryPoint indexed entryPoint, address owner);
     event TransactionExecuted(
@@ -44,10 +46,7 @@ contract Wallet is
      * @param anEntryPoint The EntryPoint contract address.
      * @param ourWalletFactory The wallet factory contract address.
      */
-    constructor(
-        IEntryPoint anEntryPoint,
-        address ourWalletFactory
-    ) Ownable() {
+    constructor(IEntryPoint anEntryPoint, address ourWalletFactory) {
         _entryPoint = anEntryPoint;
         walletFactory = ourWalletFactory;
         _disableInitializers();
@@ -70,6 +69,14 @@ contract Wallet is
     }
 
     /**
+     * @dev Modifier to restrict access to the owner.
+     */
+    modifier onlyOwner() {
+        require(msg.sender == owner, "OWNER_REQUIRED");
+        _;
+    }
+
+    /**
      * @dev Returns the EntryPoint contract.
      */
     function entryPoint() public view override returns (IEntryPoint) {
@@ -82,12 +89,12 @@ contract Wallet is
      */
     function _authorizeUpgrade(
         address newImplementation
-    ) internal view override _requireFromEntryPointOrFactory {
+    ) internal override _requireFromEntryPointOrFactory {
         emit UpgradeAuthorized(newImplementation);
     }
 
-    function transferOwnership(address newOwner) public override onlyOwner {
-        Ownable._transferOwnership(newOwner);
+    function transferOwnership(address newOwner) public onlyOwner {
+        owner = newOwner;
         emit OwnerChanged(newOwner);
     }
 
@@ -111,7 +118,7 @@ contract Wallet is
      * @param amount The amount to withdraw.
      */
     function withdrawDeposit(uint256 amount) public onlyOwner {
-        entryPoint().withdrawFrom(address(this), amount);
+        entryPoint().withdrawTo(payable(msg.sender), amount);
         emit DepositWithdrawn(amount);
     }
 
@@ -121,7 +128,7 @@ contract Wallet is
      */
     function _initialize(address initialOwner) internal {
         require(initialOwner != address(0), "OWNER_REQUIRED");
-        Ownable._transferOwnership(initialOwner);
+        owner = initialOwner;
         emit WalletInitialized(_entryPoint, initialOwner);
     }
 
@@ -131,7 +138,7 @@ contract Wallet is
      */
     function initialize(address initialOwner) external initializer {
         _initialize(initialOwner);
-    } 
+    }
 
     /**
      * @dev Validates the user operation.
@@ -146,6 +153,7 @@ contract Wallet is
         uint256 missingAccountFunds
     )
         external
+        override
         _requireFromEntryPointOrFactory
         returns (uint256 validationData)
     {
@@ -185,20 +193,20 @@ contract Wallet is
     function _validateSignature(
         PackedUserOperation calldata userOp,
         bytes32 userOpHash
-    ) internal view returns (uint256 validationData) {
+    ) internal view override returns (uint256 validationData) {
         bytes32 ethSignedMessageHash = MessageHashUtils.toEthSignedMessageHash(
             userOpHash
         );
         address signer = ECDSA.recover(ethSignedMessageHash, userOp.signature);
         return
-            signer == owner() ? SIG_VALIDATION_SUCCESS : SIG_VALIDATION_FAILED;
+            signer == owner ? SIG_VALIDATION_SUCCESS : SIG_VALIDATION_FAILED;
     }
 
     /**
      * @dev Pays the prefund if necessary.
      * @param missingAccountFunds The amount of missing funds to prefund.
      */
-    function _payPrefund(uint256 missingAccountFunds) internal {
+    function _payPrefund(uint256 missingAccountFunds) internal override {
         if (missingAccountFunds > 0) {
             (bool success, ) = payable(msg.sender).call{
                 value: missingAccountFunds,

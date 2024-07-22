@@ -16,6 +16,8 @@ contract WalletFactoryScript is Script {
 
         WalletFactory walletFactory = new WalletFactory(ENTRYPOINT); // Initialize the WalletFactory contract
 
+        console.log("WalletFactory deployed at:", address(walletFactory));
+
         vm.stopBroadcast(); // Stop broadcasting transactions
     }
 }
