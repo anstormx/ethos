@@ -81,6 +81,8 @@ export default function TransactionsList({ address, walletAddress}: TransactionL
       });
 
       console.log("signature", signature);
+
+      
   
       // Send a POST request to the create-signature endpoint with the signer's address, signature, and transaction ID
       const response = await fetch("/routes/createSignature", {

@@ -1,141 +1,211 @@
-//SPDX-License-Identifier: Unlicense
-
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-// Entry point interface
 import {IEntryPoint} from "account-abstraction/interfaces/IEntryPoint.sol";
-// Basic account implementation for a smart contract wallet
-import {BaseAccount} from "account-abstraction/core/BaseAccount.sol"; 
-// Structs and functions for user operations
-import {PackedUserOperation} from "account-abstraction/interfaces/PackedUserOperation.sol"; 
-// Used to verify signatures
+import {BaseAccount} from "account-abstraction/core/BaseAccount.sol";
+import {PackedUserOperation} from "account-abstraction/interfaces/PackedUserOperation.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-// Used to hash messages
 import {MessageHashUtils} from "@openzeppelin/contracts/utils/cryptography/MessageHashUtils.sol";
-// Used to initialize the contract
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {Initializable} from "@openzeppelin/contracts/proxy/utils/Initializable.sol";
-// Used to upgrade the contract
 import {UUPSUpgradeable} from "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
-// Enables the handling of various token types
 import {TokenCallbackHandler} from "account-abstraction/samples/callback/TokenCallbackHandler.sol";
+import {SIG_VALIDATION_FAILED, SIG_VALIDATION_SUCCESS} from "account-abstraction/core/Helpers.sol";
 
-
-contract Wallet is BaseAccount, Initializable, UUPSUpgradeable, TokenCallbackHandler{
-
-    // Allow bytes32 to use functions from ECDSA and MessageHashUtils
-    using ECDSA for bytes32;
-    using MessageHashUtils for bytes32;
-
-
-    // WalletFactory contract address
-    address public immutable walletFactory; 
-    // Entry point contract address
+/**
+ * @title Wallet
+ * @dev Implementation of a simple ERC-4337 compatible wallet.
+ */
+contract Wallet is
+    BaseAccount,
+    Ownable,
+    UUPSUpgradeable,
+    TokenCallbackHandler,
+    Initializable
+{
     IEntryPoint private immutable _entryPoint;
-    // Owners of the wallet
-    address public owner;
+    address public immutable walletFactory;
 
+    event DepositAdded(address indexed sender, uint256 amount);
+    event DepositWithdrawn(uint256 amount);
+    event UpgradeAuthorized(address indexed newImplementation);
+    event OwnerChanged(address indexed newOwner);
+    event UserOperationValidated(bytes32 indexed userOpHash, uint256 validationData);
+    event PrefundPaid(uint256 missingAccountFunds);
+    event WalletInitialized(IEntryPoint indexed entryPoint, address owner);
+    event TransactionExecuted(
+        address indexed destination,
+        uint256 value,
+        bytes functionData
+    );
 
-    // Modifier to restrict access to the entry point or wallet factory
+    /**
+     * @dev Constructor to set immutable variables.
+     * @param anEntryPoint The EntryPoint contract address.
+     * @param ourWalletFactory The wallet factory contract address.
+     */
+    constructor(
+        IEntryPoint anEntryPoint,
+        address ourWalletFactory
+    ) Ownable() {
+        _entryPoint = anEntryPoint;
+        walletFactory = ourWalletFactory;
+        _disableInitializers();
+    }
+
+    /**
+     * @dev Allows the contract to receive ETH.
+     */
+    receive() external payable {}
+
+    /**
+     * @dev Modifier to restrict access to EntryPoint or WalletFactory.
+     */
     modifier _requireFromEntryPointOrFactory() {
         require(
             msg.sender == address(_entryPoint) || msg.sender == walletFactory,
-            "Only entry point or factory can call this function"
+            "ENTRYPOINT_OR_FACTORY_REQUIRED"
         );
         _;
     }
 
-
-    constructor(IEntryPoint anEntryPoint, address ourWalletFactory) {
-        _entryPoint = anEntryPoint;
-        walletFactory = ourWalletFactory;
-    }
-
-
-    event WalletInitialized(IEntryPoint indexed entryPoint, address owner);
-
-
-    // Fallback function to accept ether
-    receive() external payable {}
-
-
-    // Function to get the entry point contract
+    /**
+     * @dev Returns the EntryPoint contract.
+     */
     function entryPoint() public view override returns (IEntryPoint) {
         return _entryPoint;
     }
 
-    // Function to upgrade the contract
-    function _authorizeUpgrade(address) internal view override _requireFromEntryPointOrFactory {}
-
-    // Function to encode the signature
-    function encodeSignatures(bytes memory signature) public pure returns (bytes memory) {
-        return abi.encode(signature);
+    /**
+     * @dev Authorizes an upgrade to a new implementation.
+     * @param newImplementation Address of the new implementation.
+     */
+    function _authorizeUpgrade(
+        address newImplementation
+    ) internal view override _requireFromEntryPointOrFactory {
+        emit UpgradeAuthorized(newImplementation);
     }
 
-    // Check the balance of the wallet
+    function transferOwnership(address newOwner) public override onlyOwner {
+        Ownable._transferOwnership(newOwner);
+        emit OwnerChanged(newOwner);
+    }
+
+    /**
+     * @dev Returns the deposit balance of this contract in the EntryPoint.
+     */
     function getDeposit() public view returns (uint256) {
         return entryPoint().balanceOf(address(this));
     }
 
-    // Deposit ether for the wallet to entry point
+    /**
+     * @dev Adds to the deposit in the EntryPoint.
+     */
     function addDeposit() public payable {
         entryPoint().depositTo{value: msg.value}(address(this));
+        emit DepositAdded(msg.sender, msg.value);
     }
-        
-    // Initialize the wallet with the owner once
+
+    /**
+     * @dev Withdraws from the deposit in the EntryPoint.
+     * @param amount The amount to withdraw.
+     */
+    function withdrawDeposit(uint256 amount) public onlyOwner {
+        entryPoint().withdrawFrom(address(this), amount);
+        emit DepositWithdrawn(amount);
+    }
+
+    /**
+     * @dev Internal function to initialize the wallet.
+     * @param initialOwner The address of the initial owner.
+     */
     function _initialize(address initialOwner) internal {
-        require(initialOwner != address(0), "Owner cannot be zero address");
-        owner = initialOwner;
+        require(initialOwner != address(0), "OWNER_REQUIRED");
+        Ownable._transferOwnership(initialOwner);
         emit WalletInitialized(_entryPoint, initialOwner);
     }
 
-    // Initialize the wallet with the owner once
-    function initialize(address initialOwner) public initializer {
+    /**
+     * @dev Initializes the wallet with the initial owner.
+     * @param initialOwner The address of the initial owner.
+     */
+    function initialize(address initialOwner) external initializer {
         _initialize(initialOwner);
+    } 
+
+    /**
+     * @dev Validates the user operation.
+     * @param userOp The user operation to validate.
+     * @param userOpHash The hash of the user operation.
+     * @param missingAccountFunds The missing funds for this operation.
+     * @return validationData The result of the validation.
+     */
+    function validateUserOp(
+        PackedUserOperation calldata userOp,
+        bytes32 userOpHash,
+        uint256 missingAccountFunds
+    )
+        external
+        _requireFromEntryPointOrFactory
+        returns (uint256 validationData)
+    {
+        validationData = _validateSignature(userOp, userOpHash);
+        _payPrefund(missingAccountFunds);
+        emit UserOperationValidated(userOpHash, validationData);
     }
 
-    function _validateSignature(
-        PackedUserOperation calldata userOp, // UserOperation data structure passed as input
-        bytes32 userOpHash // Hash of the UserOperation without the signatures
-    ) internal view override returns (uint256) {
-        // Convert the userOpHash to an Ethereum Signed Message Hash
-        bytes32 hash = userOpHash.toEthSignedMessageHash();
-
-        // Decode the signatures from the userOp and store them in a bytes array in memory
-        bytes memory signature = abi.decode(userOp.signature, (bytes));
-
-        // Recover the signer's address from signature
-        // If the recovered address doesn't match the owner's address, return SIG_VALIDATION_FAILED
-        if (owner != hash.recover(signature)) {
-            return 1;
-        }
-        
-        // If all signatures are valid return 0
-        return 0;
-    }
-
-    // Call the target contract address with amount of ether to send (value) and data payload (function signature and arguments)
-    function _call(address target, uint256 value, bytes memory data) internal {
-        (bool success, bytes memory result) = target.call{value: value}(data);
+    /**
+     * @dev Executes a transaction.
+     * @param dest The destination address for the transaction.
+     * @param value The amount of ETH to send.
+     * @param functionData The function data to execute.
+     */
+    function execute(
+        address dest,
+        uint256 value,
+        bytes calldata functionData
+    ) external _requireFromEntryPointOrFactory {
+        (bool success, bytes memory result) = dest.call{value: value}(
+            functionData
+        );
         if (!success) {
             assembly {
-                // The assembly code here skips the first 32 bytes of the result, which contains the length of data.
-                // It then loads the actual error message using mload and calls revert with this error message.
                 revert(add(result, 32), mload(result))
             }
         }
-    }
-    
-    // Execute a single transaction
-    function execute(address dest, uint256 value, bytes calldata func) external _requireFromEntryPointOrFactory {
-        _call(dest, value, func);
+        emit TransactionExecuted(dest, value, functionData);
     }
 
-    // Execute multiple transactions in a single batch
-    function executeBatch(address[] calldata dests, uint256[] calldata values, bytes[] calldata funcs) external _requireFromEntryPointOrFactory {
-        require(dests.length == funcs.length, "Wrong dests lengths");
-        require(values.length == funcs.length, "Wrong values lengths");
-        for (uint256 i = 0; i < dests.length; i++) {
-            _call(dests[i], values[i], funcs[i]);
+    /**
+     * @dev Validates the signature of a user operation.
+     * @param userOp The user operation to validate.
+     * @param userOpHash The hash of the user operation.
+     * @return validationData The result of the validation.
+     */
+    function _validateSignature(
+        PackedUserOperation calldata userOp,
+        bytes32 userOpHash
+    ) internal view returns (uint256 validationData) {
+        bytes32 ethSignedMessageHash = MessageHashUtils.toEthSignedMessageHash(
+            userOpHash
+        );
+        address signer = ECDSA.recover(ethSignedMessageHash, userOp.signature);
+        return
+            signer == owner() ? SIG_VALIDATION_SUCCESS : SIG_VALIDATION_FAILED;
+    }
+
+    /**
+     * @dev Pays the prefund if necessary.
+     * @param missingAccountFunds The amount of missing funds to prefund.
+     */
+    function _payPrefund(uint256 missingAccountFunds) internal {
+        if (missingAccountFunds > 0) {
+            (bool success, ) = payable(msg.sender).call{
+                value: missingAccountFunds,
+                gas: type(uint256).max
+            }("");
+            require(success, "PREFUND_PAYMENT_FAILED");
+            emit PrefundPaid(missingAccountFunds);
         }
     }
 }

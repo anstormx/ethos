@@ -35,7 +35,5 @@ model Transaction {
   userOp     Json
   signature   String
 
-
-
   signerAddress String
 }
