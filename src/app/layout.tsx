@@ -20,7 +20,7 @@ export default function RootLayout({children}: {children: React.ReactNode;}) {
       </head>
       <body className={inter.className}>
         <Providers>
-          <div className="flex flex-col min-h-screen bg-slate-900">
+          <div className="flex flex-col min-h-screen bg-gray-300 text-slate-950">
             <Navbar />
             {children}
             <div className="grow" />
