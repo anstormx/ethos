@@ -1,7 +1,7 @@
-import walletFactory from "../../contracts/out/WalletFactory.sol/WalletFactory.json";
-import wallet from "../../contracts/out/Wallet.sol/Wallet.json";
+import walletFactory from "./WalletFactory.json";
+import wallet from "./Wallet.json";
 
-export const WALLET_FACTORY_ADDRESS = "0x10cC698D13e71078C3976B2e222F5333eB599cA3";
+export const WALLET_FACTORY_ADDRESS = "0x2ca5d823419764c8Cb67d0B9c6B9d0D34F14257b";
 
 export const ENTRY_POINT_ADDRESS = "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789";
 

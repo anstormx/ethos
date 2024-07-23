@@ -14,7 +14,6 @@ export async function POST(req: NextRequest, res: NextResponse) {
     // Generate a random salt, convert it to hexadecimal, and prepend "0x"
     const salt = "0x" + randomBytes(32).toString("hex");
 
-    // Call the getAddress function from the wallet factory contract with the signers and salt
     // This computes the counterfactual address for the wallet without deploying it
     const walletAddress = await walletFactoryContract.getProxyAddress(signer, salt);
 

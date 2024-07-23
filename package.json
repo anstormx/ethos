@@ -8,7 +8,9 @@
     "start": "next start"
   },
   "dependencies": {
+    "@account-abstraction/contracts": "^0.6.0",
     "@biconomy/account": "4.1.1",
+    "@openzeppelin/contracts": "^4.9.6",
     "@passwordless-id/webauthn": "^1.2.4",
     "@peculiar/asn1-ecc": "^2.3.6",
     "@peculiar/asn1-schema": "^2.3.6",
@@ -25,6 +27,7 @@
     "elliptic": "^6.5.4",
     "entry-point-gas-estimations": "^0.0.19",
     "ethers": "6",
+    "hardhat": "^2.22.6",
     "next": "14.2.4",
     "process": "^0.11.10",
     "punycode": "^2.3.1",
@@ -36,6 +39,7 @@
     "wagmi": "1.4.13"
   },
   "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
     "@simplewebauthn/typescript-types": "^7.0.0",
     "@types/node": "^20",
     "@types/react": "^18",

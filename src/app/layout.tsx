@@ -8,7 +8,6 @@ import Footer from "@/components/footer";
 import { ToastContainer, Flip } from "react-toastify";
 import 'react-toastify/dist/ReactToastify.css';
 
-
 const inter = Inter({ subsets: ["latin"] });
 
 export default function RootLayout({children}: {children: React.ReactNode;}) {
