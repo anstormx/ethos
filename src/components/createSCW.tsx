@@ -60,15 +60,15 @@ export default function CreateSCW() {
   };
 
   return (
-    <main className="flex flex-col py-6 items-center gap-5">
+    <main className="flex flex-col items-center gap-5 py-6">
       <h1 className="text-5xl font-bold">Create EOA-Wallet</h1>
-      <p className="text-gray-700 text-lg">
+      <p className="text-lg text-gray-700">
         Create a new wallet using an Ethereum address
       </p>
-      <div className="flex flex-col gap-6 max-w-sm w-full">
+      <div className="flex w-full max-w-sm flex-col gap-6">
         <input
           type="text"
-          className="rounded-lg p-2 w-full text-slate-700"
+          className="w-full rounded-lg p-2 text-slate-700"
           placeholder="0x0"
           value={signer}
           onChange={(event) => {
@@ -76,10 +76,10 @@ export default function CreateSCW() {
           }}
         />
         {loading ? (
-          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-l-white items-center justify-center mx-auto" />
+          <div className="mx-auto h-6 w-6 animate-spin items-center justify-center rounded-full border-b-2 border-l-white" />
         ) : (
           <button
-            className="bg-blue-600 mx-auto hover:bg-blue-700 disabled:bg-blue-500/50 disabled:hover:bg-blue-500/50 transition text-white font-bold py-2 w-fit px-4 rounded-full duration-300"
+            className="mx-auto w-fit rounded-full bg-blue-600 px-4 py-2 font-bold text-white transition duration-300 hover:bg-blue-700 disabled:bg-blue-500/50 disabled:hover:bg-blue-500/50"
             onClick={onCreateSCW}
           >
             create wallet

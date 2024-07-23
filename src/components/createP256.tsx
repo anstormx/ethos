@@ -101,7 +101,7 @@ export default function CreateP256() {
     }
 
     const attestationObject = base64url.toBuffer(
-      publicKeyCredential.response.attestationObject
+      publicKeyCredential.response.attestationObject,
     );
 
     const authData = cbor.decode(attestationObject.buffer, undefined, undefined)
@@ -112,7 +112,7 @@ export default function CreateP256() {
     let pubk = cbor.decode(
       authDataParsed.COSEPublicKey.buffer,
       undefined,
-      undefined
+      undefined,
     );
 
     const x = pubk[COSEKEYS.x];
@@ -147,17 +147,17 @@ export default function CreateP256() {
   };
 
   return (
-    <main className="flex flex-col py-6 items-center gap-5">
+    <main className="flex flex-col items-center gap-5 py-6">
       <h1 className="text-5xl font-bold">Generate Passkey</h1>
-      <p className="text-gray-700 text-lg">
+      <p className="text-lg text-gray-700">
         Create a new wallet using WebAuthn
       </p>
-      <div className="flex flex-col gap-6 max-w-sm w-full">
+      <div className="flex w-full max-w-sm flex-col gap-6">
         {loading ? (
-          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-l-white items-center justify-center mx-auto" />
+          <div className="mx-auto h-6 w-6 animate-spin items-center justify-center rounded-full border-b-2 border-l-white" />
         ) : (
           <button
-            className="bg-blue-600 mx-auto hover:bg-blue-700 disabled:bg-blue-500/50 disabled:hover:bg-blue-500/50 transition text-white font-bold py-2 px-4 rounded-full duration-300"
+            className="mx-auto rounded-full bg-blue-600 px-4 py-2 font-bold text-white transition duration-300 hover:bg-blue-700 disabled:bg-blue-500/50 disabled:hover:bg-blue-500/50"
             onClick={createPassKey}
           >
             create passkey
@@ -167,7 +167,8 @@ export default function CreateP256() {
       {publicKeys.length > 0 && (
         <>
           <div className="mt-5 text-base">
-            Public Key Generated, save this key to use for signing transactions [Coming Soon]
+            Public Key Generated, save this key to use for signing transactions
+            [Coming Soon]
           </div>
           <div className="flex flex-col gap-5">
             <li>x: {publicKeys[0]}</li>

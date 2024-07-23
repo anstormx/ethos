@@ -28,14 +28,14 @@ export default function TransactionsList({
   const isMounted = useIsMounted();
 
   const [walletTxns, setWalletTxns] = useState<TransactionWithPendingSigner[]>(
-    []
+    [],
   );
   const [loading, setLoading] = useState(false);
 
   const fetchTransactions = useCallback(async () => {
     try {
       const response = await fetch(
-        `/routes/fetchTransactions?walletAddress=${walletAddress}`
+        `/routes/fetchTransactions?walletAddress=${walletAddress}`,
       );
 
       const data = await response.json();
@@ -45,7 +45,7 @@ export default function TransactionsList({
     } catch (error) {
       console.error(error);
       toast.error(
-        "An error occurred while fetching transactions, check the console for more information"
+        "An error occurred while fetching transactions, check the console for more information",
       );
     }
   }, [walletAddress]);
@@ -98,7 +98,7 @@ export default function TransactionsList({
     } catch (e) {
       console.log(e);
       toast.error(
-        "An error occurred while sending the transaction, check the console for more information"
+        "An error occurred while sending the transaction, check the console for more information",
       );
       setLoading(false);
     }
@@ -111,11 +111,11 @@ export default function TransactionsList({
   if (!isMounted) return null;
 
   return (
-    <main className="flex flex-col justify-center p-10 items-center  gap-5">
+    <main className="flex flex-col items-center justify-center gap-5 p-10">
       <h1 className="text-5xl font-bold">Transactions</h1>
 
       {walletTxns.length === 0 ? (
-        <div className="flex justify-center items-center border-2 border-dashed p-6 rounded-lg border-gray-600">
+        <div className="flex items-center justify-center rounded-lg border-2 border-dashed border-gray-600 p-6">
           <p className="text-lg text-gray-700">
             You currently have no transactions
           </p>
@@ -125,15 +125,15 @@ export default function TransactionsList({
           {walletTxns.map((transaction) => (
             <div
               key={transaction.id}
-              className="flex flex-col border border-gray-800 rounded-lg gap-2 p-2"
+              className="flex flex-col gap-2 rounded-lg border border-gray-800 p-2"
             >
-              <span className="bg-gray-800 w-full text-center">
+              <span className="w-full bg-gray-800 text-center">
                 Transaction #{transaction.id}
               </span>
               <div className="flex flex-col gap-2">
                 <div
                   key={transaction.signature}
-                  className="flex font-mono gap-4"
+                  className="flex gap-4 font-mono"
                 >
                   <span>{transaction.signerAddress}</span>
                   <Icon type="check" />
@@ -142,16 +142,16 @@ export default function TransactionsList({
                 {
                   transaction.txHash ? (
                     <button
-                      className="bg-blue-500 mx-auto hover:bg-blue-700 disabled:bg-blue-500/50 disabled:hover:bg-blue-500/50 hover:transition-colors text-white font-bold py-2 w-fit px-4 rounded-lg"
+                      className="mx-auto w-fit rounded-lg bg-blue-500 px-4 py-2 font-bold text-white hover:bg-blue-700 hover:transition-colors disabled:bg-blue-500/50 disabled:hover:bg-blue-500/50"
                       onClick={() =>
                         window.open(
                           `https://sepolia.etherscan.io/tx/${transaction.txHash}`,
-                          "_blank"
+                          "_blank",
                         )
                       }
                     >
                       {loading ? (
-                        <div className="animate-spin rounded-full h-6 w-6 border-4 border-gray-300 border-l-white items-center justify-center mx-auto" />
+                        <div className="mx-auto h-6 w-6 animate-spin items-center justify-center rounded-full border-4 border-gray-300 border-l-white" />
                       ) : (
                         `View on Etherscan`
                       )}
@@ -159,13 +159,13 @@ export default function TransactionsList({
                   ) : (
                     // ) : transaction.signature ? (
                     <button
-                      className="bg-blue-500 mx-auto hover:bg-blue-700 disabled:bg-blue-500/50 disabled:hover:bg-blue-500/50 hover:transition-colors text-white font-bold py-2 w-fit px-4 rounded-lg"
+                      className="mx-auto w-fit rounded-lg bg-blue-500 px-4 py-2 font-bold text-white hover:bg-blue-700 hover:transition-colors disabled:bg-blue-500/50 disabled:hover:bg-blue-500/50"
                       onClick={() =>
                         sendTransaction(transaction as TransactionWithWallet)
                       }
                     >
                       {loading ? (
-                        <div className="animate-spin rounded-full h-6 w-6 border-4 border-gray-300 border-l-white items-center justify-center mx-auto" />
+                        <div className="mx-auto h-6 w-6 animate-spin items-center justify-center rounded-full border-4 border-gray-300 border-l-white" />
                       ) : (
                         `Execute Transaction`
                       )}

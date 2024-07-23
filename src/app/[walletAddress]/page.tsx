@@ -17,7 +17,7 @@ function biginttostring(userOpFinal: UserOperationStruct) {
     Object.entries(userOpFinal).map(([key, value]) => [
       key,
       typeof value === "bigint" ? value.toString() : value,
-    ])
+    ]),
   ) as UserOperationStruct;
 }
 
@@ -35,7 +35,7 @@ export default function WalletPage({
   const fetchUserOp = async () => {
     try {
       const response = await fetch(
-        `/routes/fetchWallet?walletAddress=${walletAddress}`
+        `/routes/fetchWallet?walletAddress=${walletAddress}`,
       );
       const data = await response.json();
 
@@ -53,7 +53,7 @@ export default function WalletPage({
         data.salt,
         toAddress,
         amountBigInt,
-        data.isDeployed
+        data.isDeployed,
       );
 
       if (!userOp) throw new Error("Could not fetch user operation");
@@ -62,7 +62,7 @@ export default function WalletPage({
       return userOp;
     } catch (e) {
       toast.error(
-        "Could not fetch user operation, check console for more details"
+        "Could not fetch user operation, check console for more details",
       );
       console.log(e);
     }
@@ -83,7 +83,7 @@ export default function WalletPage({
       }
 
       const userOpHash = await entryPointContract.getUserOpHash(
-        userOp as UserOperationStruct
+        userOp as UserOperationStruct,
       );
 
       if (!window.ethereum) throw new Error("Metamask not found");
@@ -110,26 +110,25 @@ export default function WalletPage({
       });
 
       const userOpHashFinal = await entryPointContract.getUserOpHash(
-        userOp as UserOperationStruct
+        userOp as UserOperationStruct,
       );
       const signatureFinal = await signer.signMessage(
-        ethers.getBytes(userOpHashFinal)
+        ethers.getBytes(userOpHashFinal),
       );
       userOp.signature = signatureFinal as Hex;
-      
+
       const balance = await metamaskProvider.getBalance(userOp.sender);
 
       const requiredFunds =
         BigInt(userOp.callGasLimit) * BigInt(userOp.maxFeePerGas) +
-        BigInt(userOp.verificationGasLimit) *
-          BigInt(userOp.maxFeePerGas) +
-        BigInt(userOp.preVerificationGas) *
-          BigInt(userOp.maxFeePerGas) + BigInt(ethers.parseEther(amount.toString()));
+        BigInt(userOp.verificationGasLimit) * BigInt(userOp.maxFeePerGas) +
+        BigInt(userOp.preVerificationGas) * BigInt(userOp.maxFeePerGas) +
+        BigInt(ethers.parseEther(amount.toString()));
 
       if (balance < requiredFunds) {
         const amountToFund = requiredFunds - balance;
         toast.warn(
-          `Account needs funding of ${ethers.formatEther(amountToFund)} ETH`
+          `Account needs funding of ${ethers.formatEther(amountToFund)} ETH`,
         );
 
         if (!window.ethereum) throw new Error("Metamask not found");
@@ -154,7 +153,8 @@ export default function WalletPage({
             signature,
             signerAddress: userAddress,
           },
-          (key, value) => (typeof value === "bigint" ? value.toString() : value)
+          (key, value) =>
+            typeof value === "bigint" ? value.toString() : value,
         ),
         headers: {
           "Content-Type": "application/json",
@@ -183,7 +183,7 @@ export default function WalletPage({
   }, [newTransactionCreated]);
 
   return (
-    <div className="flex flex-col py-6 items-center gap-5">
+    <div className="flex flex-col items-center gap-5 py-6">
       <h1 className="text-5xl font-bold">Manage Wallet</h1>
       <h3 className="text-xl font-medium text-gray-700">{walletAddress}</h3>
 
@@ -207,11 +207,11 @@ export default function WalletPage({
         }}
       />
       <button
-        className="bg-blue-600 mx-auto hover:bg-blue-700 disabled:bg-blue-500/50 disabled:hover:bg-blue-500/50 transition text-white font-bold py-2 w-[8%] px-4 rounded-full duration-300"
+        className="mx-auto w-[8%] rounded-full bg-blue-600 px-4 py-2 font-bold text-white transition duration-300 hover:bg-blue-700 disabled:bg-blue-500/50 disabled:hover:bg-blue-500/50"
         onClick={createTransaction}
       >
         {loading ? (
-          <div className="animate-spin rounded-full h-6 w-6 border-4 border-gray-300 border-l-white items-center justify-center mx-auto" />
+          <div className="mx-auto h-6 w-6 animate-spin items-center justify-center rounded-full border-4 border-gray-300 border-l-white" />
         ) : (
           `Create Txn`
         )}

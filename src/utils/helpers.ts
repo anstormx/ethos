@@ -1,5 +1,5 @@
 import * as base64url from "./base64url-arraybuffer";
-import crypto from 'crypto';
+import crypto from "crypto";
 
 export function toHash(data: any, algo = "SHA256") {
   return crypto.createHash(algo).update(data).digest();

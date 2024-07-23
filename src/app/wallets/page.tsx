@@ -13,15 +13,15 @@ export default function Home() {
 
   return (
     <main className="flex flex-col py-[3%]">
-      <div className="flex flex-col h-full gap-6 justify-center items-center">
+      <div className="flex h-full flex-col items-center justify-center gap-6">
         <Fragment>
-          {isConnected? 
-            (address && <WalletList address={address} />)
-          : 
-          <label className="text-xl mt-[2%] font-semibold">
-            Please connect your EOA wallet
-          </label>
-          }
+          {isConnected ? (
+            address && <WalletList address={address} />
+          ) : (
+            <label className="mt-[2%] text-xl font-semibold">
+              Please connect your EOA wallet
+            </label>
+          )}
         </Fragment>
       </div>
     </main>

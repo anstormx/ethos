@@ -7,7 +7,7 @@ module.exports = {
   networks: {
     sepolia: {
       url: `${process.env.NEXT_PUBLIC_SEPOLIA_RPC}`,
-      accounts: [`${process.env.ACCOUNT_PRIVATE_KEY}`]
-      },
+      accounts: [`${process.env.ACCOUNT_PRIVATE_KEY}`],
+    },
   },
 };

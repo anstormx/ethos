@@ -26,7 +26,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error(error);
-    toast.error("An error occurred while creating transaction, check the console for more information");
+    toast.error(
+      "An error occurred while creating transaction, check the console for more information",
+    );
     return NextResponse.json({ error });
   }
 }

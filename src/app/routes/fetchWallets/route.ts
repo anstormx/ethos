@@ -34,7 +34,9 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(wallets);
   } catch (error) {
     console.error(error);
-    toast.error("An error occurred while fetching wallets, check the console for more information");
+    toast.error(
+      "An error occurred while fetching wallets, check the console for more information",
+    );
     return NextResponse.json({ error });
   }
 }

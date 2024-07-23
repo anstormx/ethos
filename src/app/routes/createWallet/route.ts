@@ -4,7 +4,6 @@ import { randomBytes } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { toast } from "react-toastify";
 
-
 export async function POST(req: NextRequest, res: NextResponse) {
   try {
     const { signer }: { signer: string } = await req.json();
@@ -15,7 +14,10 @@ export async function POST(req: NextRequest, res: NextResponse) {
     const salt = "0x" + randomBytes(32).toString("hex");
 
     // This computes the counterfactual address for the wallet without deploying it
-    const walletAddress = await walletFactoryContract.getProxyAddress(signer, salt);
+    const walletAddress = await walletFactoryContract.getProxyAddress(
+      signer,
+      salt,
+    );
 
     const response = await prisma.wallet.create({
       data: {
@@ -28,7 +30,9 @@ export async function POST(req: NextRequest, res: NextResponse) {
 
     return NextResponse.json(response);
   } catch (error) {
-    toast.error("An error occurred while creating wallet, check the console for more information");
+    toast.error(
+      "An error occurred while creating wallet, check the console for more information",
+    );
     console.log(error);
     return NextResponse.json({ error });
   }
