@@ -1,144 +1,224 @@
 "use client";
 
 import { getUserOpForETHTransfer } from "@/utils/getUserOpForETHTransfer";
-import { parseEther } from "ethers/utils";
-import { useState } from "react";
-import { useAccount, useWalletClient } from "wagmi";
-import getUserOpHash from "@/utils/getUserOpHash";
+import { parseEther, isAddress } from "ethers";
+import { useEffect, useState } from "react";
+import { useAccount } from "wagmi";
 import TransactionsList from "@/components/transactionList";
-import { Hex } from "@/interface/types";
+import { Hex, UserOperationStruct } from "@/interface/types";
 import { toast } from "react-toastify";
-import { isAddress } from "ethers";
+import { ethers } from "ethers";
+import { entryPointContract } from "@/utils/getContracts";
+import { createBundler } from "@biconomy/account";
+import { ENTRY_POINT_ADDRESS } from "@/utils/constants";
 
+function biginttostring(userOpFinal: UserOperationStruct) {
+  return Object.fromEntries(
+    Object.entries(userOpFinal).map(([key, value]) => [
+      key,
+      typeof value === "bigint" ? value.toString() : value,
+    ])
+  ) as UserOperationStruct;
+}
 
-export default function WalletPage({params: { walletAddress }}: {params: { walletAddress: string };}) {
-    const [amount, setAmount] = useState<number>(0);
-    const [toAddress, setToAddress] = useState("");
-    const { address: userAddress } = useAccount();
-    // Client for current EOA wallet
-    const { data: walletClient } = useWalletClient();
-    const [loading, setLoading] = useState(false);
+export default function WalletPage({
+  params: { walletAddress },
+}: {
+  params: { walletAddress: string };
+}) {
+  const [amount, setAmount] = useState<number>(0);
+  const [toAddress, setToAddress] = useState("");
+  const { address: userAddress } = useAccount();
+  const [loading, setLoading] = useState(false);
+  const [newTransactionCreated, setNewTransactionCreated] = useState(false);
 
-    const fetchUserOp = async () => {
-        try {
-            const response = await fetch(
-                `/routes/fetchWallet?walletAddress=${walletAddress}`
-            );
-            const data = await response.json();
+  const fetchUserOp = async () => {
+    try {
+      const response = await fetch(
+        `/routes/fetchWallet?walletAddress=${walletAddress}`
+      );
+      const data = await response.json();
 
-            if (data.error) throw new Error(data.error);
+      if (data === null || data.error) {
+        toast.error("Could not fetch wallet data");
+        return null;
+      }
 
-            const amountBigInt = parseEther(amount.toString());
+      const amountBigInt = parseEther(amount.toString());
 
-            // Get the user operation for the ETH transfer
-            const userOp = await getUserOpForETHTransfer(
-                walletAddress as Hex,
-                data.signer,
-                data.salt,
-                toAddress,
-                amountBigInt,
-                data.isDeployed
-            );
+      // Get the user operation for the ETH transfer
+      const userOp = await getUserOpForETHTransfer(
+        walletAddress as Hex,
+        data.signer,
+        data.salt,
+        toAddress,
+        amountBigInt,
+        data.isDeployed
+      );
 
-            console.log("User operation fetched: ", userOp);
+      if (!userOp) throw new Error("Could not fetch user operation");
 
-            if (!userOp) throw new Error("Could not fetch user operation");
+      // Return the user operation
+      return userOp;
+    } catch (e) {
+      toast.error(
+        "Could not fetch user operation, check console for more details"
+      );
+      console.log(e);
+    }
+  };
 
-            // Return the user operation
-            return userOp;
-        } catch (e) {
-            toast.error("Could not fetch user operation, check console for more details");
-            console.log(e);
-        }
-    };
+  const createTransaction = async () => {
+    try {
+      setLoading(true);
 
-    const createTransaction = async () => {
-        try {
-            setLoading(true);
-        
-            if (!amount || (amount<0)) throw new Error("Please enter a valid amount");
-            if (!toAddress || !isAddress(toAddress)) throw new Error("Please enter a valid address");
-        
-            const userOp = await fetchUserOp();
-            if (!userOp) throw new Error("Could not fetch userOp");
-        
-            const userOpHash = await getUserOpHash(userOp);
-            
-            // Sign the user operation hash using the wallet client
-            const signature = await walletClient?.signMessage({                  //webauthn
-                message: { raw: userOpHash as `0x${string}` },
-            });
-            
-            const response = await fetch("/routes/createTransaction", {
-                method: "POST",
-                body: JSON.stringify({
-                walletAddress,
-                userOp,
-                signature,
-                signerAddress: userAddress,
-                }, (key, value) =>
-                    typeof value === 'bigint'
-                        ? value.toString()
-                        : value
-                ),
-                headers: {
-                "Content-Type": "application/json",
-                },
-            });
-        
-            const data = await response.json();
-            if (data.error) throw new Error(data.error);
-        
-            toast.success("Transaction created successfully");
-            setLoading(false);
+      if (!amount || amount < 0) throw new Error("Please enter a valid amount");
+      if (!toAddress || !isAddress(toAddress))
+        throw new Error("Please enter a valid address");
 
-            window.location.reload();
-        } catch (err) {
-            console.log(err);
-            toast.error(`${err}`);
-            setLoading(false);
-        }
-    };
+      const userOp = await fetchUserOp();
+      if (!userOp) {
+        setLoading(false);
+        return;
+      }
 
-    return (
-        <div className="flex flex-col py-6 items-center gap-5">
-            <h1 className="text-5xl font-bold">Manage Wallet</h1>
-            <h3 className="text-xl font-medium border-b border-gray-700">
-                {walletAddress}
-            </h3>
-        
-            <p className="text-lg font-bold">Send ETH</p>
-        
-            <input
-                className="rounded-lg p-2 text-slate-700"
-                placeholder="0x0"
-                onChange={(e) => setToAddress(e.target.value)}
-            />
-            <input
-                className="rounded-lg p-2 text-slate-700"
-                type="number"
-                placeholder="1"
-                onChange={(e) => {
-                if (e.target.value === "") {
-                    setAmount(0);
-                    return;
-                }
-                setAmount(parseFloat(e.target.value));
-                }}
-            />
-            <button
-                className="bg-blue-500 mx-auto hover:bg-blue-700 disabled:bg-blue-500/50 disabled:hover:bg-blue-500/50 hover:transition-colors text-white font-bold py-2 w-[8%] px-4 rounded-lg transition duration-200"
-                onClick={createTransaction}
-            >
-                {loading ? (
-                <div className="animate-spin rounded-full h-6 w-6 border-4 border-gray-300 border-l-white items-center justify-center mx-auto" />
-                ) : (
-                `Create Txn`
-                )}
-            </button>
-            {userAddress && (
-                <TransactionsList address={userAddress} walletAddress={walletAddress} />
-            )}
-        </div>
-    );
+      const userOpHash = await entryPointContract.getUserOpHash(
+        userOp as UserOperationStruct
+      );
+
+      if (!window.ethereum) throw new Error("Metamask not found");
+      const metamaskProvider = new ethers.BrowserProvider(window.ethereum);
+      const signer = await metamaskProvider.getSigner();
+      const signature = await signer.signMessage(ethers.getBytes(userOpHash));
+      userOp.signature = signature as Hex;
+
+      const bundler = await createBundler({
+        bundlerUrl: `${process.env.NEXT_PUBLIC_BICONOMY_BUNDLERURL}`,
+        chainId: 11155111,
+        entryPointAddress: ENTRY_POINT_ADDRESS,
+      });
+
+      const userOpString = biginttostring(userOp as UserOperationStruct);
+      const userOpGasResponse = await bundler.estimateUserOpGas(userOpString);
+
+      Object.assign(userOp, {
+        callGasLimit: BigInt(userOpGasResponse.callGasLimit),
+        verificationGasLimit: BigInt(userOpGasResponse.verificationGasLimit),
+        maxFeePerGas: BigInt(userOpGasResponse.maxFeePerGas),
+        maxPriorityFeePerGas: BigInt(userOpGasResponse.maxPriorityFeePerGas),
+        preVerificationGas: BigInt(userOpGasResponse.preVerificationGas),
+      });
+
+      const userOpHashFinal = await entryPointContract.getUserOpHash(
+        userOp as UserOperationStruct
+      );
+      const signatureFinal = await signer.signMessage(
+        ethers.getBytes(userOpHashFinal)
+      );
+      userOp.signature = signatureFinal as Hex;
+      
+      const balance = await metamaskProvider.getBalance(userOp.sender);
+
+      const requiredFunds =
+        BigInt(userOp.callGasLimit) * BigInt(userOp.maxFeePerGas) +
+        BigInt(userOp.verificationGasLimit) *
+          BigInt(userOp.maxFeePerGas) +
+        BigInt(userOp.preVerificationGas) *
+          BigInt(userOp.maxFeePerGas) + BigInt(ethers.parseEther(amount.toString()));
+
+      if (balance < requiredFunds) {
+        const amountToFund = requiredFunds - balance;
+        toast.warn(
+          `Account needs funding of ${ethers.formatEther(amountToFund)} ETH`
+        );
+
+        if (!window.ethereum) throw new Error("Metamask not found");
+        const metamaskProvider = new ethers.BrowserProvider(window.ethereum);
+        const signer = await metamaskProvider.getSigner();
+        const tx = await signer.sendTransaction({
+          to: userOp.sender,
+          value: amountToFund,
+        });
+
+        await tx.wait();
+
+        toast.success("Account funded successfully");
+      }
+
+      const response = await fetch("/routes/createTransaction", {
+        method: "POST",
+        body: JSON.stringify(
+          {
+            walletAddress,
+            userOp,
+            signature,
+            signerAddress: userAddress,
+          },
+          (key, value) => (typeof value === "bigint" ? value.toString() : value)
+        ),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      const data = await response.json();
+      if (data.error) throw new Error(data.error);
+
+      toast.success("Transaction created successfully");
+      setNewTransactionCreated(true);
+      setLoading(false);
+
+      window.location.reload();
+    } catch (err) {
+      console.error(err);
+      toast.error(`${err}`);
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (newTransactionCreated) {
+      setNewTransactionCreated(false);
+    }
+  }, [newTransactionCreated]);
+
+  return (
+    <div className="flex flex-col py-6 items-center gap-5">
+      <h1 className="text-5xl font-bold">Manage Wallet</h1>
+      <h3 className="text-xl font-medium text-gray-700">{walletAddress}</h3>
+
+      <p className="text-lg font-bold">Send ETH</p>
+
+      <input
+        className="rounded-lg p-2 text-slate-700"
+        placeholder="0x0"
+        onChange={(e) => setToAddress(e.target.value)}
+      />
+      <input
+        className="rounded-lg p-2 text-slate-700"
+        type="number"
+        placeholder="1"
+        onChange={(e) => {
+          if (e.target.value === "") {
+            setAmount(0);
+            return;
+          }
+          setAmount(parseFloat(e.target.value));
+        }}
+      />
+      <button
+        className="bg-blue-600 mx-auto hover:bg-blue-700 disabled:bg-blue-500/50 disabled:hover:bg-blue-500/50 transition text-white font-bold py-2 w-[8%] px-4 rounded-full duration-300"
+        onClick={createTransaction}
+      >
+        {loading ? (
+          <div className="animate-spin rounded-full h-6 w-6 border-4 border-gray-300 border-l-white items-center justify-center mx-auto" />
+        ) : (
+          `Create Txn`
+        )}
+      </button>
+      {userAddress && (
+        <TransactionsList address={userAddress} walletAddress={walletAddress} />
+      )}
+    </div>
+  );
 }

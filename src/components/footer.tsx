@@ -2,7 +2,7 @@ import Link from "next/link";
 
 export default function Footer() {
   return (
-    <div className="w-full py-[1%] text-center">
+    <div className="w-full py-[1%] text-center text-semibold">
     made with ❤️ by{" "}
       <Link
         href="https://github.com/anstormx"

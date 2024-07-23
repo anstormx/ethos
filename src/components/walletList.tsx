@@ -26,8 +26,8 @@ export default function WalletList({ address }: { address: string }) {
       <h1 className="text-5xl font-bold">Your Wallets</h1>
 
       {wallets.length === 0 ? (
-        <div className="flex justify-center items-center border-2 border-dashed p-6 rounded-lg">
-          <p className="text-lg">
+        <div className="flex justify-center items-center border-2 border-dashed border-gray-600 p-6 rounded-lg">
+          <p className="text-lg text-gray-700">
             You currently have no smart contract wallets
           </p>
         </div>
@@ -44,7 +44,7 @@ export default function WalletList({ address }: { address: string }) {
                 </p>
                 <div className="bg-gray-300 rounded-full items-center px-4 py-1 flex gap-2 mr-4">
                   {wallet.isDeployed ? (
-                    <div className="h-2 w-2 rounded-full bg-green-400" />
+                    <div className="h-2 w-2 rounded-full bg-green-500" />
                   ) : (
                     <div className="h-2 w-2 rounded-full bg-red-500" />
                   )}
@@ -62,13 +62,13 @@ export default function WalletList({ address }: { address: string }) {
                     className="flex items-center justify-center gap-2 py-2"
                   >
                     <Icon type="user" />
-                    <Link href={`/${wallet.address}`} className="text-gray-300 hover:text-gray-100 transition duration-200 mr-[2%]">
+                    <Link href={`/${wallet.address}`} className="text-gray-700 hover:text-gray-500 transition duration-200 mr-[2%]">
                       <p className="font-mono">{wallet.address}</p>
                     </Link>
                     <Link
                       href={`https://sepolia.etherscan.io/address/${wallet.address}`}
                       target="_blank"
-                      className="text-blue-500 hover:text-blue-400 transition duration-200"
+                      className="text-blue-600 hover:text-blue-700 transition duration-200"
                     >
                       Etherscan
                     </Link>

@@ -1,7 +1,7 @@
 "use client";
 
 import {
-  midnightTheme,
+  lightTheme,
   getDefaultWallets,
   RainbowKitProvider,
 } from "@rainbow-me/rainbowkit";
@@ -27,7 +27,7 @@ const wagmiConfig = createConfig({
 export default function Providers({ children }: { children: React.ReactNode }) {
   return (
     <WagmiConfig config={wagmiConfig}>
-      <RainbowKitProvider chains={chains} theme={midnightTheme()}>
+      <RainbowKitProvider chains={chains} theme={lightTheme()}>
         {children}
       </RainbowKitProvider>
     </WagmiConfig>
