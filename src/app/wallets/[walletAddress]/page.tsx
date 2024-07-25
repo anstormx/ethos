@@ -101,6 +101,8 @@ export default function WalletPage({
       const userOpString = biginttostring(userOp as UserOperationStruct);
       const userOpGasResponse = await bundler.estimateUserOpGas(userOpString);
 
+      console.log("userOpGasResponse", userOpGasResponse);
+
       Object.assign(userOp, {
         callGasLimit: BigInt(userOpGasResponse.callGasLimit),
         verificationGasLimit: BigInt(userOpGasResponse.verificationGasLimit),
@@ -118,11 +120,15 @@ export default function WalletPage({
       userOp.signature = signatureFinal as Hex;
 
       const balance = await metamaskProvider.getBalance(userOp.sender);
+      console.log("balance", balance);
 
       const requiredFunds =
         BigInt(userOp.callGasLimit) * BigInt(userOp.maxFeePerGas) +
         BigInt(userOp.verificationGasLimit) * BigInt(userOp.maxFeePerGas) +
-        BigInt(userOp.preVerificationGas) * BigInt(userOp.maxFeePerGas) +
+        (BigInt(userOp.preVerificationGas) *
+          BigInt(userOp.maxFeePerGas) * // To prevent gas running out
+          BigInt(11)) /
+          BigInt(10) +
         BigInt(ethers.parseEther(amount.toString()));
 
       if (balance < requiredFunds) {
@@ -171,7 +177,7 @@ export default function WalletPage({
       window.location.reload();
     } catch (err) {
       console.error(err);
-      toast.error(`${err}`);
+      toast.error("An error occurred while creating the userOp");
       setLoading(false);
     }
   };
@@ -207,13 +213,13 @@ export default function WalletPage({
         }}
       />
       <button
-        className="mx-auto w-[8%] rounded-full bg-blue-600 px-4 py-2 font-bold text-white transition duration-300 hover:bg-blue-700 disabled:bg-blue-500/50 disabled:hover:bg-blue-500/50"
+        className="mx-auto w-[8%] min-w-40 rounded-full bg-blue-600 px-4 py-2 font-bold text-white transition duration-300 hover:bg-blue-700 disabled:bg-blue-500/50 disabled:hover:bg-blue-500/50"
         onClick={createTransaction}
       >
         {loading ? (
           <div className="mx-auto h-6 w-6 animate-spin items-center justify-center rounded-full border-4 border-gray-300 border-l-white" />
         ) : (
-          `Create Txn`
+          `Create userOp`
         )}
       </button>
       {userAddress && (

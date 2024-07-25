@@ -127,7 +127,7 @@ export default function TransactionsList({
               key={transaction.id}
               className="flex flex-col gap-2 rounded-lg border border-gray-800 p-2"
             >
-              <span className="w-full bg-gray-800 text-center">
+              <span className="w-full rounded-t-lg bg-gray-700 p-2 text-center font-bold text-white">
                 Transaction #{transaction.id}
               </span>
               <div className="flex flex-col gap-2">
